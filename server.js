@@ -12,46 +12,45 @@ function corsHeaders() {
 }
 
 function makeRequest(method, path, body, callback) {
+  const bodyStr = body ? JSON.stringify(body) : null;
   const options = {
     hostname: 'api.zapsign.com.br',
     path: path,
     method: method,
     headers: {
       'Authorization': 'Token ' + ZAPSIGN_TOKEN,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     }
   };
+  if (bodyStr) options.headers['Content-Length'] = Buffer.byteLength(bodyStr);
 
   const req = https.request(options, (res) => {
     let data = '';
     res.on('data', chunk => data += chunk);
     res.on('end', () => {
       try { callback(null, res.statusCode, JSON.parse(data)); }
-      catch(e) { callback(null, res.statusCode, data); }
+      catch(e) { callback(null, res.statusCode, { raw: data }); }
     });
   });
-
   req.on('error', (e) => callback(e));
-  if (body) req.write(JSON.stringify(body));
+  if (bodyStr) req.write(bodyStr);
   req.end();
 }
 
 require('http').createServer((req, res) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(200, corsHeaders());
     res.end();
     return;
   }
 
-  // Health check
   if (req.url === '/' || req.url === '/health') {
     res.writeHead(200, corsHeaders());
     res.end(JSON.stringify({ status: 'ok', service: 'ZapSign Proxy - Dra. Jacqueline Rosa' }));
     return;
   }
 
-  // Create document
   if (req.url === '/criar' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -69,13 +68,12 @@ require('http').createServer((req, res) => {
         });
       } catch(e) {
         res.writeHead(400, corsHeaders());
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        res.end(JSON.stringify({ error: 'Invalid JSON: ' + e.message }));
       }
     });
     return;
   }
 
-  // Check document status
   if (req.url.startsWith('/verificar/') && req.method === 'GET') {
     const token = req.url.replace('/verificar/', '');
     makeRequest('GET', '/api/v1/docs/' + token + '/', null, (err, status, data) => {
