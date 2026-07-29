@@ -1,7 +1,7 @@
 const https = require('https');
-
+ 
 const ZAPSIGN_TOKEN = '3424a328-d18b-41bf-916f-ed32fa8f9876ba77b651-4496-4df0-8bec-5a235bdfb5b7';
-
+ 
 function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
@@ -10,7 +10,7 @@ function corsHeaders() {
     'Content-Type': 'application/json'
   };
 }
-
+ 
 function makeRequest(method, path, body, callback) {
   const bodyStr = body ? JSON.stringify(body) : null;
   const options = {
@@ -18,13 +18,13 @@ function makeRequest(method, path, body, callback) {
     path: path,
     method: method,
     headers: {
-      'Authorization': 'Token ' + ZAPSIGN_TOKEN,
+      'Authorization': 'Bearer ' + ZAPSIGN_TOKEN,
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     }
   };
   if (bodyStr) options.headers['Content-Length'] = Buffer.byteLength(bodyStr);
-
+ 
   const req = https.request(options, (res) => {
     let data = '';
     res.on('data', chunk => data += chunk);
@@ -37,20 +37,20 @@ function makeRequest(method, path, body, callback) {
   if (bodyStr) req.write(bodyStr);
   req.end();
 }
-
+ 
 require('http').createServer((req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(200, corsHeaders());
     res.end();
     return;
   }
-
+ 
   if (req.url === '/' || req.url === '/health') {
     res.writeHead(200, corsHeaders());
     res.end(JSON.stringify({ status: 'ok', service: 'ZapSign Proxy - Dra. Jacqueline Rosa' }));
     return;
   }
-
+ 
   if (req.url === '/criar' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -73,7 +73,7 @@ require('http').createServer((req, res) => {
     });
     return;
   }
-
+ 
   if (req.url.startsWith('/verificar/') && req.method === 'GET') {
     const token = req.url.replace('/verificar/', '');
     makeRequest('GET', '/api/v1/docs/' + token + '/', null, (err, status, data) => {
@@ -87,10 +87,11 @@ require('http').createServer((req, res) => {
     });
     return;
   }
-
+ 
   res.writeHead(404, corsHeaders());
   res.end(JSON.stringify({ error: 'Not found' }));
-
+ 
 }).listen(process.env.PORT || 3000, () => {
   console.log('ZapSign Proxy rodando na porta', process.env.PORT || 3000);
 });
+ 
