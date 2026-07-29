@@ -1,0 +1,12 @@
+{
+  "name": "zapsign-proxy",
+  "version": "1.0.0",
+  "description": "ZapSign Proxy para Dra. Jacqueline Rosa",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
